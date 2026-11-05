@@ -157,15 +157,16 @@ grant UID/GID 10001 appropriate ownership or ACL access before running; startup
 does not change host ownership or permissions. Avoid world-writable directories.
 Numeric `--user UID:GID` overrides work without an account entry in the image.
 
-PowerShell with Docker Desktop (replace these absolute host paths):
+PowerShell with Docker Desktop, using `config`, `photos`, and `reports` beneath
+the current directory (`$PWD.Path`):
 
 ```powershell
-New-Item -ItemType Directory -Force 'C:\scanner\reports' | Out-Null
+New-Item -ItemType Directory -Force "$($PWD.Path)\reports" | Out-Null
 docker run --rm --read-only --network=none --cap-drop=ALL `
   --security-opt=no-new-privileges `
-  --mount 'type=bind,source=C:\scanner\config,target=/config,readonly' `
-  --mount 'type=bind,source=C:\photos,target=/data,readonly' `
-  --mount 'type=bind,source=C:\scanner\reports,target=/output' `
+  --mount "type=bind,source=$($PWD.Path)\config,target=/config,readonly" `
+  --mount "type=bind,source=$($PWD.Path)\photos,target=/data,readonly" `
+  --mount "type=bind,source=$($PWD.Path)\reports,target=/output" `
   ghcr.io/matthiasbalke/disk-space-cleanup-helper:latest `
   --config /config/scan.toml
 ```
