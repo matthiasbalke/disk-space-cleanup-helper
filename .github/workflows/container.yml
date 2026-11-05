@@ -25,7 +25,7 @@ jobs:
       - name: Container acceptance tests
         env:
           SCANNER_IMAGE: cleanup-scanner:candidate
-        run: python -m unittest container_tests.test_image -v
+        run: python -m unittest discover -v
       - name: Report image size
         run: |
           size=$(docker image inspect cleanup-scanner:candidate --format '{{.Size}}')

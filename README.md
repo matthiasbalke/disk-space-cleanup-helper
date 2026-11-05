@@ -221,3 +221,7 @@ desired. Private pulls require `docker login ghcr.io` with an appropriately
 permissioned account. A denied publish usually requires checking package linkage
 and repository Actions access; a denied pull may indicate package visibility or
 missing registry credentials.
+
+The first validated linux/amd64 image measured **33,802,970 bytes (32.24 MiB)**
+uncompressed. This measurement includes runtime libraries and is recorded by CI;
+base-image updates can change it within the enforced budget.
