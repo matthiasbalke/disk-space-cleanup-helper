@@ -11,7 +11,7 @@
 
 - [x] 2.1 Add container integration tests for the four finding types, timestamped JSONL, Unicode names, ordering, uniqueness, empty categories, persisted host reports, and unchanged input; verify tests pass against the final runtime image.
 - [x] 2.2 Test read-only configuration/input/rootfs, dropped capabilities, no-new-privileges, and no network using default and overridden non-root users; verify valid runs succeed and invalid configuration or unwritable output preserve exit statuses 2 or 1.
-- [ ] 2.3 Document local build/test commands and measured runtime size; verify existing application unit tests and container acceptance tests run independently and together.
+- [x] 2.3 Document local build/test commands and measured runtime size; verify existing application unit tests and container acceptance tests run independently and together.
 
 ## 3. GitHub validation and GHCR publishing
 
