@@ -68,6 +68,10 @@ class ImageTests(unittest.TestCase):
         info = json.loads(result.stdout)[0]
         self.assertEqual(info['Architecture'], 'amd64')
         self.assertEqual(info['Config']['User'], '10001:10001')
+        labels = info['Config']['Labels']
+        self.assertEqual(labels['org.opencontainers.image.source'],
+                         'https://github.com/' + os.environ.get('GITHUB_REPOSITORY', 'matthiasbalke/disk-space-cleanup-helper'))
+        self.assertEqual(labels['org.opencontainers.image.revision'], os.environ.get('GITHUB_SHA', 'unknown'))
         size = info['Size']
         print(f'Image size: {size} bytes ({size / 1024**2:.2f} MiB)')
         check_size(size)
