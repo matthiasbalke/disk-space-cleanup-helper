@@ -16,6 +16,6 @@
 ## 3. GitHub validation and GHCR publishing
 
 - [x] 3.1 Add push-to-main and pull-request validation with unit tests, Buildx build/load, container acceptance checks, and image-size reporting; verify workflow structure and successful read-only validation without publishing on a pull request.
-- [ ] 3.2 Pass the tested image archive to a dependent main-only publish job, authenticate using GITHUB_TOKEN with job-scoped contents:read and packages:write, and publish lowercase latest and sha-<full SHA> tags with OCI labels; verify the workflow does not rebuild and PRs receive no publish permissions.
+- [x] 3.2 Pass the tested image archive to a dependent main-only publish job, authenticate using GITHUB_TOKEN with job-scoped contents:read and packages:write, and publish lowercase latest and sha-<full SHA> tags with OCI labels; verify the workflow does not rebuild and PRs receive no publish permissions.
 - [x] 3.3 Serialize main publication and skip superseded candidates; verify overlapping-run logic cannot move latest back to an older commit and document current-main-only publication behavior.
-- [ ] 3.4 Document GHCR image references, digest pinning, package access/visibility, and publication diagnostics; verify the first successful main run publishes both expected tags, reports their digest, and the published image can be pulled and smoke-tested.
+- [x] 3.4 Document GHCR image references, digest pinning, package access/visibility, and publication diagnostics; verify the first successful main run publishes both expected tags, reports their digest, and the published image can be pulled and smoke-tested.
