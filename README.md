@@ -122,3 +122,102 @@ directories and 11,000 zero-byte files, producing 4,000 findings in 0.274 second
 (including analysis and writing; excluding fixture creation). Instrumentation
 confirmed one enumeration per directory. This is a reproducible smoke benchmark,
 not a prediction for real disks, network storage, or other machines.
+
+## Docker
+
+The container image is `ghcr.io/matthiasbalke/disk-space-cleanup-helper:latest`
+(linux/amd64). Windows users need Docker Desktop in Linux-container mode. It
+runs as UID/GID `10001:10001`, never elevates privileges, and needs no network.
+The default command displays help. To analyze data, copy
+[examples/container.toml](examples/container.toml) to a separate configuration
+directory as `scan.toml`. It uses `/data` for input and `/output` for results.
+
+Create three separate host directories for configuration, input, and output.
+The output directory must not physically reside within input, even if separate
+bind mounts hide this relationship. Configuration and input mounts are read-only.
+Reports contain **container paths**, e.g. `/data/holiday`, corresponding to
+`holiday` beneath your host input directory. They do not contain host paths.
+
+Bash/Zsh on Linux (run as a non-root host user):
+
+```sh
+mkdir -p "$PWD/reports"
+docker run --rm --read-only --network=none --cap-drop=ALL \
+  --security-opt=no-new-privileges --user "$(id -u):$(id -g)" \
+  --mount "type=bind,source=$PWD/config,target=/config,readonly" \
+  --mount "type=bind,source=$PWD/photos,target=/data,readonly" \
+  --mount "type=bind,source=$PWD/reports,target=/output" \
+  ghcr.io/matthiasbalke/disk-space-cleanup-helper:latest \
+  --config /config/scan.toml
+```
+
+The output directory must be writable by the chosen UID/GID and input must be
+readable/searchable by it. To use the default image identity on Linux instead,
+grant UID/GID 10001 appropriate ownership or ACL access before running; startup
+does not change host ownership or permissions. Avoid world-writable directories.
+Numeric `--user UID:GID` overrides work without an account entry in the image.
+
+PowerShell with Docker Desktop (replace these absolute host paths):
+
+```powershell
+New-Item -ItemType Directory -Force 'C:\scanner\reports' | Out-Null
+docker run --rm --read-only --network=none --cap-drop=ALL `
+  --security-opt=no-new-privileges `
+  --mount 'type=bind,source=C:\scanner\config,target=/config,readonly' `
+  --mount 'type=bind,source=C:\photos,target=/data,readonly' `
+  --mount 'type=bind,source=C:\scanner\reports,target=/output' `
+  ghcr.io/matthiasbalke/disk-space-cleanup-helper:latest `
+  --config /config/scan.toml
+```
+
+All source directories must already exist and Docker Desktop must have access to
+them. Docker Desktop mediates Windows file permissions; Linux UID mapping does
+not translate directly to Windows accounts. Configuration paths still use Linux
+syntax inside the container. Results persist after the container exits. Native
+Python installation continues to work on Windows and Linux.
+
+### Building and testing the image
+
+```sh
+docker buildx build --platform linux/amd64 --load -t cleanup-scanner:test .
+python -m unittest discover -s tests -v
+SCANNER_IMAGE=cleanup-scanner:test python -m unittest container_tests.test_image -v
+```
+
+For PowerShell, set `$env:SCANNER_IMAGE = 'cleanup-scanner:test'` before invoking
+the container test command (the integration fixture currently requires a Linux
+host for UID-based permission preparation; it runs on Linux CI). Native unit
+tests run on both Windows and Linux. Run `SCANNER_IMAGE=cleanup-scanner:test
+python -m unittest discover -v` on Linux to execute both suites together.
+
+The runtime contains the interpreter, required runtime libraries, and the
+application, excluding pip, setuptools, compilers, tests, caches, and repository
+files. Base images are digest-pinned; refresh both compatible Alpine/Python
+bases together and rerun acceptance tests when updating them. CI measures
+uncompressed image size with `docker image inspect` and enforces an 80 MiB
+(83,886,080 bytes) ceiling. Registry compressed transfer size is a different
+measurement. Container acceptance tests check the default and overridden
+non-root users, read-only rootfs/input/config, no capabilities or network,
+JSONL contents, and configuration/output failure exit codes.
+
+### Publishing and selecting versions
+
+Every push to `main` builds and validates the image before publication to GHCR.
+Pull requests build and test without logging in or publishing. The publish job
+loads the exact validated image archive without rebuilding it. It alone receives
+`packages:write`, authenticating with `GITHUB_TOKEN`; no PAT is needed.
+
+Published tags are `latest` and `sha-<full-commit-sha>`. OCI labels identify the
+source repository and revision. Publication is serialized and superseded main
+candidates are skipped, so an old run cannot regress `latest`. The workflow
+summary includes size, published references, and digest. It pulls both registry
+tags and runs the published image as a final check.
+
+Use the SHA tag to select a commit, or pin the digest from the workflow summary:
+`ghcr.io/matthiasbalke/disk-space-cleanup-helper@sha256:<digest>`. Roll back by
+selecting an older tag/digest. GHCR packages may initially be private; maintainers
+can change package visibility in GitHub's package settings if public pulls are
+desired. Private pulls require `docker login ghcr.io` with an appropriately
+permissioned account. A denied publish usually requires checking package linkage
+and repository Actions access; a denied pull may indicate package visibility or
+missing registry credentials.
