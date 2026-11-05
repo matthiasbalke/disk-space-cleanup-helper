@@ -2,7 +2,7 @@
 
 ## 1. CLI and configuration
 
-- [ ] 1.1 Create Python 3.11+ package metadata, CLI and module entry points; verify installation and --help work.
+- [x] 1.1 Create Python 3.11+ package metadata, CLI and module entry points; verify installation and --help work.
 - [x] 1.2 Implement TOML loading, config-relative path resolution, finding-rule validation, and case-insensitive regex compilation; verify valid and invalid configuration tests, including malformed regex and unsafe category names.
 - [x] 1.3 Validate root existence/type and resolved output containment before side effects; verify equality, nested output, sibling prefixes, missing roots, and link aliases using tests.
 - [x] 1.4 Deliver an example TOML for all four finding types and CLI/configuration documentation; verify the example loads and document shell quoting and relative-path semantics.
@@ -23,5 +23,5 @@
 ## 4. Integration and platform acceptance
 
 - [x] 4.1 Connect CLI validation, traversal, writers, and completion reporting with documented exit statuses; verify subprocess tests for clean runs, invalid configuration, partial scan errors, and output failures, including no result writes for invalid configuration.
-- [ ] 4.2 Add Windows and Linux CI coverage for the full acceptance suite, including native path containment, junction/link behavior where supported, and Unicode names; verify both platform jobs pass and explain any capability-dependent skips.
+- [x] 4.2 Add Windows and Linux CI coverage for the full acceptance suite, including native path containment, junction/link behavior where supported, and Unicode names; verify both platform jobs pass and explain any capability-dependent skips.
 - [x] 4.3 Run an end-to-end fixture with all four categories and a representative large synthetic tree; verify expected records, stable category outputs, single-pass enumeration, and document observed performance without promising hardware-independent timings.
