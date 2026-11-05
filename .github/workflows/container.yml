@@ -1,0 +1,91 @@
+name: Container
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.13'
+      - name: Unit tests
+        run: python -m unittest discover -s tests -v
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+      - name: Build candidate
+        run: >-
+          docker buildx build --platform linux/amd64 --load
+          --build-arg "REVISION=$GITHUB_SHA"
+          --build-arg "SOURCE_URL=https://github.com/$GITHUB_REPOSITORY"
+          --tag cleanup-scanner:candidate .
+      - name: Container acceptance tests
+        env:
+          SCANNER_IMAGE: cleanup-scanner:candidate
+        run: python -m unittest discover -v
+      - name: Report image size
+        run: |
+          size=$(docker image inspect cleanup-scanner:candidate --format '{{.Size}}')
+          echo "Uncompressed linux/amd64 image: $size bytes (limit 83886080)." >> "$GITHUB_STEP_SUMMARY"
+      - name: Export validated image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: docker save cleanup-scanner:candidate -o /tmp/scanner-image.tar
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          name: validated-image
+          path: /tmp/scanner-image.tar
+          retention-days: 1
+  publish:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    concurrency:
+      group: ghcr-main-publication
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - name: Skip superseded candidate
+        id: policy
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          head=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
+          allowed=$(python scripts/publish_policy.py "$GITHUB_EVENT_NAME" "$GITHUB_REF" "$GITHUB_SHA" "$head")
+          echo "allowed=$allowed" >> "$GITHUB_OUTPUT"
+          if [ "$allowed" != true ]; then
+            echo "Candidate $GITHUB_SHA was superseded by $head; publication skipped." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        if: steps.policy.outputs.allowed == 'true'
+        with:
+          name: validated-image
+          path: /tmp/image
+      - name: Publish exact validated image
+        if: steps.policy.outputs.allowed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          docker load -i /tmp/image/scanner-image.tar
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          trap 'docker logout ghcr.io' EXIT
+          docker tag cleanup-scanner:candidate "$image:sha-$GITHUB_SHA"
+          docker tag cleanup-scanner:candidate "$image:latest"
+          docker push "$image:sha-$GITHUB_SHA"
+          docker push "$image:latest"
+          digest=$(docker image inspect "$image:sha-$GITHUB_SHA" --format '{{index .RepoDigests 0}}')
+          echo "Published $image:latest and $image:sha-$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+          echo "Digest: $digest" >> "$GITHUB_STEP_SUMMARY"
+          # Verify registry tags can be pulled and execute the published artifact.
+          docker pull "$image:sha-$GITHUB_SHA"
+          docker pull "$image:latest"
+          test "$(docker image inspect "$image:latest" --format '{{.Id}}')" = "$(docker image inspect "$image:sha-$GITHUB_SHA" --format '{{.Id}}')"
+          docker run --rm --read-only --network=none --cap-drop=ALL --security-opt=no-new-privileges "$image:sha-$GITHUB_SHA" --help

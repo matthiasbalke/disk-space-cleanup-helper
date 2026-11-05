@@ -1,0 +1,6 @@
+**
+!Dockerfile
+!.dockerignore
+!pyproject.toml
+!cleanup_scanner/
+!cleanup_scanner/*.py
