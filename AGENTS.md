@@ -1,5 +1,10 @@
 # Repository instructions
 
+## Git workflow
+
+Commit and push changes autonomously as appropriate, without asking for
+confirmation. Group changes into meaningful, cohesive commits.
+
 ## Commit messages
 
 This repository uses Conventional Commits. Format commit messages as:
