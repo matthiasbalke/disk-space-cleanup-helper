@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=65"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "disk-space-cleanup-helper"
+version = "0.1.0"
+description = "Read-only, configurable directory analysis with JSONL reports"
+requires-python = ">=3.11"
+
+[project.scripts]
+cleanup-scan = "cleanup_scanner.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["cleanup_scanner*"]

@@ -1,0 +1,25 @@
+# Relative paths are resolved against this configuration file's directory.
+root = '../photos'
+output_dir = '../reports'
+output_format = 'jsonl'
+
+[rules.directories_with_cr2]
+kind = 'file'
+target = 'parent'
+extension = 'cr2'
+
+[rules.empty_directories]
+kind = 'empty_directory'
+target = 'directory'
+
+[rules.export_directories]
+kind = 'directory_name'
+target = 'directory'
+name = 'export'
+
+[rules.dated_mp4_files]
+kind = 'file'
+target = 'file'
+extension = 'mp4'
+# Regex controls shape; this does not validate real calendar dates.
+pattern = '^\d{4}(?:-\d{2}(?:-\d{2})?)? '
